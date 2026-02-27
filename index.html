@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>אילוסטרציית פנים מצחיקה</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Arial; margin: 18px; background:#0b0f14; color:#eaf2ff; }
+    .card { max-width: 980px; margin: 0 auto; background:#121a24; border:1px solid #263245; border-radius: 14px; padding: 14px; }
+    h1 { font-size: 20px; margin: 6px 0 10px; }
+    p { margin: 6px 0 12px; opacity: .9; }
+    .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    input[type="file"] { background:#0b0f14; border:1px solid #2a3950; padding:10px; border-radius: 10px; color:#eaf2ff; }
+    button { cursor:pointer; border:1px solid #2a3950; background:#182433; color:#eaf2ff; padding:10px 12px; border-radius: 10px; }
+    button:hover { background:#1c2b3d; }
+    label { display:flex; gap:10px; align-items:center; }
+    .small { font-size: 13px; opacity:.8; }
+    canvas { width: 100%; max-width: 980px; border-radius: 14px; border:1px solid #263245; background:#0b0f14; }
+    .status { font-size: 13px; opacity:.85; margin-top:10px; }
+    .pill { display:inline-block; padding:4px 8px; border:1px solid #2a3950; border-radius:999px; margin-inline-start:8px; }
+  </style>
+
+  <!-- TensorFlow.js + Face Landmarks Detection (MediaPipe) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.20.0/dist/tf-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.20.0/dist/tf-converter.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.20.0/dist/tf-backend-webgl.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@1.0.6/dist/face-landmarks-detection.min.js"></script>
+</head>
+
+<body>
+  <div class="card">
+    <h1>אילוסטרציית פנים מצחיקה 😄 <span class="pill">GitHub Pages</span></h1>
+    <p>תעלה תמונת פנים, והדפדפן יהפוך אותה ל״איור״ עם נקודות + עיניים מוגזמות + שפם קטן.</p>
+
+    <div class="row">
+      <input id="file" type="file" accept="image/*" />
+      <button id="btnRun" disabled>יאללה – עשה מצחיק</button>
+
+      <label class="small">
+        <input id="toggleMesh" type="checkbox" checked />
+        להראות רשת נקודות
+      </label>
+
+      <label class="small">
+        <input id="toggleGoofy" type="checkbox" checked />
+        להוסיף עיניים/שפם מוגזמים
+      </label>
+
+      <button id="btnDownload" disabled>להוריד תמונה</button>
+    </div>
+
+    <div class="status" id="status">סטטוס: טוען מודל…</div>
+  </div>
+
+  <div style="max-width:980px;margin:12px auto 0;">
+    <canvas id="c"></canvas>
+  </div>
+
+<script>
+  const statusEl = document.getElementById('status');
+  const fileEl = document.getElementById('file');
+  const btnRun = document.getElementById('btnRun');
+  const btnDl = document.getElementById('btnDownload');
+  const toggleMesh = document.getElementById('toggleMesh');
+  const toggleGoofy = document.getElementById('toggleGoofy');
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+
+  let detector = null;
+  let img = new Image();
+  img.crossOrigin = "anonymous";
+
+  function setStatus(s){ statusEl.textContent = "סטטוס: " + s; }
+
+  function fitCanvasToImage(image){
+    canvas.width = image.naturalWidth || image.width;
+    canvas.height = image.naturalHeight || image.height;
+  }
+
+  function drawBase(image){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  }
+
+  function circle(x,y,r){
+    ctx.beginPath();
+    ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  function line(x1,y1,x2,y2,w=2){
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    ctx.moveTo(x1,y1);
+    ctx.lineTo(x2,y2);
+    ctx.stroke();
+  }
+
+  function avgPoint(points){
+    let sx=0, sy=0;
+    for (const p of points){ sx += p.x; sy += p.y; }
+    return { x: sx/points.length, y: sy/points.length };
+  }
+
+  function dist(a,b){
+    const dx=a.x-b.x, dy=a.y-b.y;
+    return Math.hypot(dx,dy);
+  }
+
+  // indices (MediaPipe FaceMesh-ish). Works well enough for goofy overlay.
+  const LEFT_EYE = [33, 133, 160, 159, 158, 144, 145, 153];
+  const RIGHT_EYE = [362, 263, 387, 386, 385, 373, 374, 380];
+  const MOUTH = [61, 291, 0, 17, 13, 14, 78, 308];
+  const NOSE_TIP = 1;
+
+  async function init(){
+    try{
+      await tf.setBackend('webgl');
+      await tf.ready();
+
+      const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
+      detector = await faceLandmarksDetection.createDetector(model, {
+        runtime: 'tfjs',
+        refineLandmarks: true,
+        maxFaces: 1
+      });
+
+      setStatus("מוכן. תעלה תמונה 🙂");
+      btnRun.disabled = false;
+    }catch(e){
+      console.error(e);
+      setStatus("נכשל לטעון מודל. נסה דפדפן אחר/רשת אחרת.");
+    }
+  }
+
+  fileEl.addEventListener('change', async () => {
+    const f = fileEl.files?.[0];
+    if(!f) return;
+
+    setStatus("טוען תמונה…");
+    const url = URL.createObjectURL(f);
+    img = new Image();
+    img.onload = () => {
+      fitCanvasToImage(img);
+      drawBase(img);
+      btnDl.disabled = true;
+      setStatus("תמונה נטענה. לחץ 'עשה מצחיק'.");
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  });
+
+  btnRun.addEventListener('click', async () => {
+    if(!detector || !img?.src){
+      setStatus("תעלה תמונה קודם.");
+      return;
+    }
+
+    setStatus("מאתר תווי פנים…");
+
+    drawBase(img);
+
+    const faces = await detector.estimateFaces(canvas, { flipHorizontal: false });
+    if(!faces || faces.length === 0){
+      setStatus("לא מצאתי פנים בתמונה. נסה תמונה עם פנים קרובות וברורות.");
+      return;
+    }
+
+    const keypoints = faces[0].keypoints.map(p => ({x:p.x, y:p.y, z:p.z || 0}));
+
+    // Mesh dots
+    if(toggleMesh.checked){
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = "#00e5ff";
+      for(const p of keypoints){
+        circle(p.x, p.y, Math.max(1, canvas.width/900));
+      }
+      ctx.restore();
+    }
+
+    // Goofy overlay: big eyes + simple mustache + mouth highlight
+    if(toggleGoofy.checked){
+      const le = avgPoint(LEFT_EYE.map(i => keypoints[i]));
+      const re = avgPoint(RIGHT_EYE.map(i => keypoints[i]));
+      const mouth = avgPoint(MOUTH.map(i => keypoints[i]));
+      const nose = keypoints[NOSE_TIP];
+
+      const eyeSpan = dist(le, re);
+      const eyeR = eyeSpan * 0.22;
+
+      // Big white eyes
+      ctx.save();
+      ctx.globalAlpha = 0.92;
+      ctx.fillStyle = "#ffffff";
+      circle(le.x, le.y, eyeR);
+      circle(re.x, re.y, eyeR);
+
+      // Pupils (slightly cross-eyed = fun)
+      ctx.fillStyle = "#0b0f14";
+      circle(le.x + eyeR*0.10, le.y + eyeR*0.10, eyeR*0.33);
+      circle(re.x - eyeR*0.10, re.y + eyeR*0.10, eyeR*0.33);
+
+      // Tiny highlight
+      ctx.fillStyle = "#ffffff";
+      circle(le.x + eyeR*0.20, le.y - eyeR*0.15, eyeR*0.08);
+      circle(re.x + eyeR*0.05, re.y - eyeR*0.15, eyeR*0.08);
+
+      // Mustache under nose
+      ctx.strokeStyle = "#111111";
+      ctx.lineCap = "round";
+      const st = eyeSpan * 0.05;
+      line(nose.x - eyeSpan*0.18, nose.y + eyeSpan*0.12, nose.x - st, nose.y + eyeSpan*0.12, eyeSpan*0.04);
+      line(nose.x + st, nose.y + eyeSpan*0.12, nose.x + eyeSpan*0.18, nose.y + eyeSpan*0.12, eyeSpan*0.04);
+
+      // Mouth outline (cartoon)
+      ctx.strokeStyle = "#ff4d6d";
+      ctx.lineWidth = eyeSpan * 0.02;
+      ctx.beginPath();
+      ctx.arc(mouth.x, mouth.y, eyeSpan*0.16, 0.1*Math.PI, 0.9*Math.PI);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    setStatus("מוכן 😄 אפשר להוריד את התמונה.");
+    btnDl.disabled = false;
+  });
+
+  btnDl.addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.download = 'funny-face.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  });
+
+  init();
+</script>
+</body>
+</html>
