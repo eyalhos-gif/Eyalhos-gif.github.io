@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>מור vs גלידה 🍦</title>
+  <style>
+    :root{
+      --bg1:#0b1020; --bg2:#1c2a4a;
+      --card:#0f1733cc;
+      --text:#f6f7ff;
+      --muted:#b9c2ff;
+      --accent:#7cf7c8;
+      --warn:#ffd36e;
+      --danger:#ff6b8a;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans Hebrew", sans-serif;
+      color:var(--text);
+      background: radial-gradient(1200px 700px at 20% 10%, #263a7a 0%, transparent 60%),
+                  radial-gradient(900px 600px at 90% 30%, #1d6b5a 0%, transparent 55%),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+    header{
+      padding:20px 18px 10px;
+      max-width:1100px;
+      margin:0 auto;
+    }
+    .title{
+      display:flex; gap:10px; align-items:baseline; flex-wrap:wrap;
+    }
+    h1{margin:0; font-size:clamp(22px, 3.6vw, 42px); letter-spacing:.2px}
+    .tag{
+      font-weight:700;
+      color:#0b1020;
+      background:linear-gradient(90deg, var(--accent), #86c8ff);
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:14px;
+    }
+    .sub{
+      margin:10px 0 0;
+      color:var(--muted);
+      line-height:1.45;
+      max-width:70ch;
+    }
+
+    main{
+      max-width:1100px;
+      margin:0 auto;
+      padding:14px 18px 40px;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:16px;
+    }
+    @media (max-width: 900px){
+      main{grid-template-columns:1fr}
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid #ffffff1a;
+      border-radius:18px;
+      padding:14px;
+      box-shadow: 0 20px 60px #00000055;
+      backdrop-filter: blur(10px);
+    }
+
+    .stage{
+      position:relative;
+      border-radius:14px;
+      overflow:hidden;
+      border:1px solid #ffffff22;
+      background:linear-gradient(135deg, #0b1020, #152350);
+      min-height:420px;
+      display:grid;
+      place-items:center;
+    }
+    canvas{
+      width:100%;
+      height:auto;
+      display:block;
+    }
+
+    .bubble{
+      position:absolute;
+      top:14px;
+      right:14px;
+      max-width:min(420px, 80%);
+      background:#ffffff;
+      color:#111;
+      border-radius:18px;
+      padding:12px 12px 10px;
+      box-shadow:0 10px 30px #00000055;
+      transform-origin: top right;
+      animation: pop .6s ease both;
+    }
+    @keyframes pop{
+      from{transform:scale(.85); opacity:0}
+      to{transform:scale(1); opacity:1}
+    }
+    .bubble::after{
+      content:"";
+      position:absolute;
+      right:18px;
+      top:100%;
+      width:0;height:0;
+      border:10px solid transparent;
+      border-top-color:#fff;
+    }
+    .bubble b{font-size:15px}
+    .bubble p{margin:6px 0 0; font-size:14px; line-height:1.35}
+
+    .controls{
+      display:grid;
+      gap:10px;
+    }
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    button, .file{
+      border:1px solid #ffffff22;
+      background:linear-gradient(180deg, #1b2a58, #121b3d);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      font-weight:700;
+      cursor:pointer;
+      transition: transform .06s ease, filter .2s ease, border-color .2s ease;
+      user-select:none;
+    }
+    button:hover{filter:brightness(1.08); border-color:#ffffff44}
+    button:active{transform: translateY(1px) scale(.99)}
+    button.secondary{
+      background:linear-gradient(180deg, #213c33, #142622);
+    }
+    button.warn{
+      background:linear-gradient(180deg, #4a3a16, #2a220f);
+      border-color:#ffd36e55;
+    }
+    button.danger{
+      background:linear-gradient(180deg, #4a1a2a, #240e16);
+      border-color:#ff6b8a55;
+    }
+    .hint{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.4;
+      margin:6px 0 0;
+    }
+    .meter{
+      display:grid;
+      gap:8px;
+      margin-top:6px;
+    }
+    .meter label{
+      display:flex;
+      justify-content:space-between;
+      font-size:13px;
+      color:var(--muted);
+    }
+    input[type="range"]{
+      width:100%;
+      accent-color: var(--accent);
+    }
+
+    .mini{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      padding-top:8px;
+      border-top:1px dashed #ffffff22;
+      margin-top:10px;
+    }
+    .badge{
+      font-size:12px;
+      color:#0b1020;
+      background:linear-gradient(90deg, var(--warn), #ff9db0);
+      padding:6px 10px;
+      border-radius:999px;
+      font-weight:800;
+    }
+
+    .footer{
+      color:#9fb0ff;
+      font-size:12px;
+      margin-top:10px;
+      opacity:.9;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="title">
+      <h1>מור אוכלת גלידה 🍦 (סטייל “קאט־אאוט”)</h1>
+      <span class="tag">מצחיק • חד • לא רציני בשום צורה</span>
+    </div>
+    <p class="sub">
+      האתר לוקח את התמונה, עושה לה פוסטריזציה + קווי מתאר עבים, ואז מוסיף גלידה מצוירת ביד חופשית.
+      זה לא “סאות׳פארק” אחד לאחד (קופירייט וזה), אבל זה 100% הווייב.
+    </p>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="stage">
+        <canvas id="c" width="1100" height="1400" aria-label="תמונה מעובדת"></canvas>
+
+        <div class="bubble" id="bubble">
+          <b>מור:</b>
+          <p id="line">“מי נגע לי בגלידה? אני רק מסתכלת…”</p>
+        </div>
+      </div>
+
+      <div class="mini">
+        <span class="badge" id="status">🍦 מצב: מתקפת וניל</span>
+        <span class="footer">טיפ: תלחץ “עוד בדיחה” עד שזה נהיה מביך (בקטע טוב).</span>
+      </div>
+    </section>
+
+    <aside class="card">
+      <div class="controls">
+        <div class="row">
+          <button id="btnJoke">עוד בדיחה 😂</button>
+          <button class="secondary" id="btnIce">להחליף טעם 🍨</button>
+          <button class="warn" id="btnChaos">כאוס קטן 🌀</button>
+          <button class="danger" id="btnReset">ריסט 🔄</button>
+        </div>
+
+        <div class="meter">
+          <label><span>רמת קווים (“קומיקס”)</span><span id="vEdge">65</span></label>
+          <input id="edge" type="range" min="0" max="100" value="65">
+        </div>
+        <div class="meter">
+          <label><span>פוסטריזציה (פחות צבעים)</span><span id="vPost">6</span></label>
+          <input id="post" type="range" min="2" max="10" value="6">
+        </div>
+        <div class="meter">
+          <label><span>הגודל של הגלידה</span><span id="vIce">55</span></label>
+          <input id="ice" type="range" min="25" max="90" value="55">
+        </div>
+
+        <p class="hint">
+          אם לא שמת את הקובץ <b>mor.jpg</b> באותה תיקייה, זה לא יעבוד.
+          אפשר גם להחליף תמונה דרך הכפתור למטה.
+        </p>
+
+        <div class="row">
+          <label class="file">
+            לבחור תמונה אחרת 📷
+            <input id="file" type="file" accept="image/*" style="display:none">
+          </label>
+          <button id="btnSave">להוריד את התוצאה 🖼️</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  const bubble = document.getElementById('bubble');
+  const lineEl = document.getElementById('line');
+  const statusEl = document.getElementById('status');
+
+  const edge = document.getElementById('edge');
+  const post = document.getElementById('post');
+  const ice = document.getElementById('ice');
+  const vEdge = document.getElementById('vEdge');
+  const vPost = document.getElementById('vPost');
+  const vIce  = document.getElementById('vIce');
+
+  const btnJoke = document.getElementById('btnJoke');
+  const btnIce  = document.getElementById('btnIce');
+  const btnChaos= document.getElementById('btnChaos');
+  const btnReset= document.getElementById('btnReset');
+  const btnSave = document.getElementById('btnSave');
+  const fileInp = document.getElementById('file');
+
+  const jokes = [
+    "“מי נגע לי בגלידה? אני רק מסתכלת…”",
+    "“אני לא עצבנית. אני פשוט… במצב ‘פיסטוק’.”",
+    "“תביאו כפית, אני באה לעשות סדר עולמי.”",
+    "“אם זה לא וניל, אני מתקשרת למנהל היקום.”",
+    "“הפרצוף הזה? זה פרצוף של ‘עוד ביס אחד וסיימנו’.”",
+    "“אני בשקט כי אני מחשבת כמה קלוריות שוות לי האושר.”"
+  ];
+
+  const flavors = [
+    { name:"וניל", top:"#fff1d1", mid:"#ffe6a6", drip:"#ffd36e", cherry:"#ff6b8a" },
+    { name:"שוקו", top:"#c8a07b", mid:"#a57552", drip:"#7a4e35", cherry:"#ff6b8a" },
+    { name:"תות",  top:"#ffd0dd", mid:"#ff9db0", drip:"#ff6b8a", cherry:"#ff2e63" },
+    { name:"מנטה", top:"#d6fff1", mid:"#7cf7c8", drip:"#2fd3a0", cherry:"#ff6b8a" }
+  ];
+  let flavorIdx = 0;
+
+  // Load default image (mor.jpg)
+  let img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = () => render();
+  img.onerror = () => {
+    // fallback: show instructions
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 54px system-ui";
+    ctx.fillText("לא מצאתי mor.jpg", 60, 120);
+    ctx.font = "28px system-ui";
+    ctx.fillStyle = "#b9c2ff";
+    ctx.fillText("שמור את התמונה בשם mor.jpg באותה תיקייה עם index.html", 60, 175);
+    ctx.fillText("או בחר תמונה אחרת עם הכפתור.", 60, 215);
+  };
+  img.src = "mor.jpg";
+
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+  function posterize(data, levels){
+    const step = 255 / (levels - 1);
+    for (let i=0;i<data.length;i+=4){
+      data[i]   = Math.round(data[i]   / step) * step;
+      data[i+1] = Math.round(data[i+1] / step) * step;
+      data[i+2] = Math.round(data[i+2] / step) * step;
+    }
+  }
+
+  // Quick edge detect (Sobel-ish simplified)
+  function edgeMask(src, w, h, strength){
+    const out = new Uint8ClampedArray(w*h);
+    const s = strength / 100; // 0..1
+    const thr = 35 + (1 - s) * 40;
+
+    function lum(i){
+      return 0.2126*src[i] + 0.7152*src[i+1] + 0.0722*src[i+2];
+    }
+
+    for (let y=1; y<h-1; y++){
+      for (let x=1; x<w-1; x++){
+        const p = (y*w + x) * 4;
+        const l  = lum(p);
+        const lx = lum(p+4) - lum(p-4);
+        const ly = lum(p+w*4) - lum(p-w*4);
+        const g = Math.abs(lx) + Math.abs(ly) + Math.abs(l - lum(p-4-w*4));
+        out[y*w + x] = (g > thr) ? 255 : 0;
+      }
+    }
+    return out;
+  }
+
+  function drawCutoutLook(){
+    // Fit image into canvas with portrait-friendly crop
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0,0,W,H);
+
+    // Background stripes (subtle)
+    ctx.save();
+    ctx.globalAlpha = 0.08;
+    ctx.translate(W*0.1, H*0.05);
+    ctx.rotate(-0.25);
+    for(let i=-20;i<60;i++){
+      ctx.fillStyle = (i%2===0) ? "#ffffff" : "#7cf7c8";
+      ctx.fillRect(i*80, -H, 40, H*2);
+    }
+    ctx.restore();
+
+    // Compute crop to keep face area-ish centered
+    const imgAR = img.width / img.height;
+    const canAR = W / H;
+
+    let sx=0, sy=0, sw=img.width, sh=img.height;
+    if (imgAR > canAR){
+      // image wider: crop sides
+      sh = img.height;
+      sw = sh * canAR;
+      sx = (img.width - sw) * 0.40; // bias a bit right
+    } else {
+      // image taller: crop top/bottom
+      sw = img.width;
+      sh = sw / canAR;
+      sy = (img.height - sh) * 0.25; // bias up
+    }
+
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+
+    // Read pixels
+    const frame = ctx.getImageData(0,0,W,H);
+    const data = frame.data;
+
+    // Posterize (flat colors)
+    const levels = Number(post.value);
+    posterize(data, levels);
+
+    // Slight saturation pop (simple)
+    for (let i=0;i<data.length;i+=4){
+      const r=data[i], g=data[i+1], b=data[i+2];
+      const avg=(r+g+b)/3;
+      data[i]   = clamp(avg + (r-avg)*1.15, 0, 255);
+      data[i+1] = clamp(avg + (g-avg)*1.15, 0, 255);
+      data[i+2] = clamp(avg + (b-avg)*1.15, 0, 255);
+    }
+
+    // Edge mask & draw outlines
+    const mask = edgeMask(data, W, H, Number(edge.value));
+    for (let i=0;i<mask.length;i++){
+      if (mask[i]===255){
+        const p=i*4;
+        data[p]=10; data[p+1]=10; data[p+2]=14;
+      }
+    }
+
+    ctx.putImageData(frame, 0, 0);
+
+    // Add a "paper cutout" shadow border
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.lineWidth = 14;
+    ctx.strokeStyle = "#0a0f20";
+    ctx.globalAlpha = 0.55;
+    ctx.strokeRect(8, 8, W-16, H-16);
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "#ffffff22";
+    ctx.strokeRect(18, 18, W-36, H-36);
+    ctx.restore();
+  }
+
+  function drawIceCream(){
+    const W = canvas.width, H = canvas.height;
+    const s = Number(ice.value) / 100; // 0.25..0.9
+    const scale = 1.15 + s; // 1.4..2.05-ish
+
+    const flavor = flavors[flavorIdx];
+
+    // Position near mouth area (tuned for your photo: right side face)
+    const cx = W*0.70;
+    const cy = H*0.62;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(-0.15);
+
+    // Hand-ish (simple mitten)
+    ctx.fillStyle = "#f0c2a0";
+    ctx.strokeStyle = "#090b12";
+    ctx.lineWidth = 6;
+
+    const handW = 130*scale, handH = 110*scale;
+    roundRect(-handW*0.4, handH*0.25, handW, handH, 40*scale, true, true);
+
+    // Cone
+    ctx.beginPath();
+    ctx.moveTo(0, 230*scale);
+    ctx.lineTo(-70*scale, 60*scale);
+    ctx.lineTo(70*scale, 60*scale);
+    ctx.closePath();
+    ctx.fillStyle = "#d8a463";
+    ctx.fill();
+    ctx.stroke();
+
+    // Cone lines
+    ctx.globalAlpha = 0.25;
+    ctx.strokeStyle = "#6b3f1f";
+    ctx.lineWidth = 4;
+    for (let i=-55;i<=55;i+=22){
+      ctx.beginPath();
+      ctx.moveTo(i*scale, 210*scale);
+      ctx.lineTo((i+28)*scale, 120*scale);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = "#090b12";
+    ctx.lineWidth = 6;
+
+    // Scoops (3 blobs)
+    function scoop(x,y,r, colA, colB){
+      const grd = ctx.createRadialGradient(x-20*scale, y-20*scale, 10, x, y, r);
+      grd.addColorStop(0, colA);
+      grd.addColorStop(1, colB);
+      ctx.fillStyle = grd;
+
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+
+      // drip
+      ctx.fillStyle = flavor.drip;
+      ctx.beginPath();
+      ctx.moveTo(x-r*0.6, y+r*0.6);
+      ctx.bezierCurveTo(x-r*0.2, y+r*1.2, x+r*0.1, y+r*1.2, x+r*0.2, y+r*0.6);
+      ctx.bezierCurveTo(x+r*0.35, y+r*1.25, x+r*0.55, y+r*1.15, x+r*0.55, y+r*0.55);
+      ctx.closePath();
+      ctx.globalAlpha=0.9;
+      ctx.fill();
+      ctx.globalAlpha=1;
+      ctx.stroke();
+    }
+
+    scoop(0, 40*scale, 95*scale, flavor.top, flavor.mid);
+    scoop(-70*scale, 90*scale, 70*scale, flavor.top, flavor.mid);
+    scoop(70*scale, 95*scale, 72*scale, flavor.top, flavor.mid);
+
+    // Cherry
+    ctx.fillStyle = flavor.cherry;
+    ctx.beginPath();
+    ctx.arc(20*scale, -40*scale, 20*scale, 0, Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Face proximity “bite marks” joke
+    ctx.globalAlpha=0.35;
+    ctx.fillStyle="#ffffff";
+    for(let i=0;i<6;i++){
+      ctx.beginPath();
+      ctx.arc((-90 + i*25)*scale, (10 + (i%2)*12)*scale, 10*scale, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha=1;
+
+    ctx.restore();
+  }
+
+  function roundRect(x,y,w,h,r, fill, stroke){
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.arcTo(x+w, y, x+w, y+h, rr);
+    ctx.arcTo(x+w, y+h, x, y+h, rr);
+    ctx.arcTo(x, y+h, x, y, rr);
+    ctx.arcTo(x, y, x+w, y, rr);
+    ctx.closePath();
+    if(fill) ctx.fill();
+    if(stroke) ctx.stroke();
+  }
+
+  function render(){
+    vEdge.textContent = edge.value;
+    vPost.textContent = post.value;
+    vIce.textContent  = ice.value;
+
+    drawCutoutLook();
+    drawIceCream();
+  }
+
+  // UI
+  btnJoke.addEventListener('click', () => {
+    const j = jokes[Math.floor(Math.random()*jokes.length)];
+    lineEl.textContent = j;
+    bubble.style.animation = "none";
+    bubble.offsetHeight; // reflow
+    bubble.style.animation = "";
+  });
+
+  btnIce.addEventListener('click', () => {
+    flavorIdx = (flavorIdx + 1) % flavors.length;
+    const f = flavors[flavorIdx].name;
+    statusEl.textContent = `🍦 מצב: ${f} על הקצה`;
+    render();
+  });
+
+  btnChaos.addEventListener('click', () => {
+    // Randomize sliders for comedic effect
+    edge.value = String(Math.floor(40 + Math.random()*60));
+    post.value = String(Math.floor(3 + Math.random()*6));
+    ice.value  = String(Math.floor(35 + Math.random()*55));
+    statusEl.textContent = "🌀 מצב: ‘מה אני רואה פה?’";
+    render();
+  });
+
+  btnReset.addEventListener('click', () => {
+    edge.value = 65; post.value = 6; ice.value = 55; flavorIdx = 0;
+    statusEl.textContent = "🍦 מצב: מתקפת וניל";
+    lineEl.textContent = "“מי נגע לי בגלידה? אני רק מסתכלת…”";
+    render();
+  });
+
+  [edge, post, ice].forEach(el => el.addEventListener('input', render));
+
+  fileInp.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    const url = URL.createObjectURL(f);
+    const newImg = new Image();
+    newImg.onload = () => { img = newImg; render(); URL.revokeObjectURL(url); };
+    newImg.src = url;
+  });
+
+  btnSave.addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.download = "mor-icecream-cutout.png";
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  });
+
+})();
+</script>
+</body>
+</html>
